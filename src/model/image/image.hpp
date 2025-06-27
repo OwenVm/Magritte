@@ -56,12 +56,16 @@ struct Image {
         const Vector3D ray_dir);
     Image(const Geometry& geometry, const Frequencies& frequencies, const ImageType it,
         const Vector3D ray_dir, const Size Nxpix, const Size Nypix);
+    Image(const Geometry& geometry, const Frequencies& frequencies, const ImageType it,
+      const Vector3D ray_dir, const Size Nxpix, const Size Nypix, const double fraction);
     Image(const Image& image);
 
     inline void set_freqs(const Frequencies& frequencies);
     inline void set_coordinates_all_model_points(const Geometry& geometry);
     inline void set_coordinates_projection_surface(
         const Geometry& geometry, const Size Nxpix, const Size Nypix);
+    inline void set_coordinates_projection_surface_with_limit(
+        const Geometry& geometry, const Size Nxpix, const Size Nypix, const double Fraction);
 
     accel Vector3D surface_coords_to_3D_coordinates(const double x, const double y) const;
 };

@@ -101,6 +101,22 @@ Image ::Image(const Geometry& geometry, const Frequencies& frequencies, const Im
     set_coordinates_projection_surface(geometry, Nxpix, Nypix);
 }
 
+///  Constructor for Image; using non-default rays, non-default point position
+//////////////////////////
+Image ::Image(const Geometry& geometry, const Frequencies& frequencies, const ImageType it,
+    const Vector3D raydir, const Size Nxpix, const Size Nypix, const double Fraction) :
+    imageType(it), imagePointPosition(ProjectionSurface), ray_nr(-1), ray_direction(raydir) {
+    if (geometry.parameters->dimension() == 1) {
+        // Same error condition as previous imager. In 1D, it does not matter either
+        // way from which direction we image.
+        if ((raydir.x() != 0.0) || (raydir.y() != 1.0) || (raydir.z() != 0.0)) {
+            throw std::runtime_error("In 1D, the image ray has to be (0,1,0)");
+        }
+    }
+    set_freqs(frequencies);
+    set_coordinates_projection_surface_with_limit(geometry, Nxpix, Nypix, Fraction);
+}
+
 inline void Image ::set_freqs(const Frequencies& frequencies) {
     // if (model.spectralDiscretisation != SD_Image)
     // {
@@ -360,6 +376,135 @@ inline void Image ::set_coordinates_projection_surface(const Geometry& geometry,
         }
     });
 }
+
+///  Setter for the coordinates on the image axes, assuming the image is
+///  projected onto a surface outside the model
+///    @param[in] geometry : geometry object of the model
+///    @param[in] Nxpix : number of pixels in x direction
+///    @param[in] Nypix : number of pixels in y direction
+/////////////////////////////////////////////////////////
+// assumes the frequencies have already been set
+inline void Image ::set_coordinates_projection_surface_with_limit(const Geometry& geometry, const Size Nxpix,
+    const Size Nypix, const double Fraction) //(const Geometry& geometry)
+{
+
+    // default initialization for the limits of the projected boundary points
+    double max_x = std::numeric_limits<double>::lowest();
+    double max_y = std::numeric_limits<double>::lowest();
+    double min_x = std::numeric_limits<double>::max();
+    double min_y = std::numeric_limits<double>::max();
+    // Maybe in other function: define the imaging plane (do we still need the
+    // perpendicular vectors anywhere? I guess not)
+    if (geometry.parameters->dimension() == 1) {
+        for (Size bdy_idx = 0; bdy_idx < geometry.parameters->nboundary(); bdy_idx++) {
+            const Size bdy_point_index = geometry.boundary.boundary2point[bdy_idx];
+            const double ImX           = geometry.points.position[bdy_point_index].x();
+            max_x                      = std::max(max_x, ImX);
+            min_x                      = std::min(min_x, ImX);
+        }
+        // In 1D, all model points 'lie' on the x-axis. Thus to get a proper image,
+        // we also need to use the same dimensions for the y-axis.
+        max_x = std::max(std::abs(min_x), max_x);
+        min_x = -max_x;
+        min_y = min_x;
+        max_y = max_x;
+
+        // For now, the ray direction in 1D can only be (0.0,1.0,0.0)
+        // We do set the x-and y-directions, as we treat the image of the 1D object
+        // in the same way as a 3D object But still, these direction vectors might
+        // as well be omitted, as we have spherical symmetry in this object... Note:
+        // no copy constructor exists for Paracabs::Vector objects Note: the
+        // directions are obtained by filling in the formulae for ix,iy, jx,jy,jz
+        image_direction_x = Vector3D(1.0, 0.0, 0.0);
+        image_direction_y = Vector3D(0.0, 0.0, -1.0);
+        image_direction_z = Vector3D(0.0, 1.0, 0.0);
+    }
+
+    if (geometry.parameters->dimension() == 3) {
+        const double rx = ray_direction.x();
+        const double ry = ray_direction.y();
+        const double rz = ray_direction.z();
+
+        const double denominator         = sqrt(rx * rx + ry * ry);
+        const double inverse_denominator = 1.0 / denominator;
+
+        const double ix = ry * inverse_denominator;
+        const double iy = -rx * inverse_denominator;
+
+        const double jx = rx * rz * inverse_denominator;
+        const double jy = ry * rz * inverse_denominator;
+        const double jz = -denominator;
+
+        if (denominator >= 1.0e-9) {
+            // Err, just find the projected bounds of the boundary points
+            // TODO: try to find paracabs fun that actually implements reduce
+            // operation (or use the ThreadPrivate stuff, then manually min, max them)
+            for (Size bdy_idx = 0; bdy_idx < geometry.parameters->nboundary(); bdy_idx++) {
+                const Size bdy_point_index = geometry.boundary.boundary2point[bdy_idx];
+                const double ImX           = ix * geometry.points.position[bdy_point_index].x()
+                                 + iy * geometry.points.position[bdy_point_index].y();
+                const double ImY = jx * geometry.points.position[bdy_point_index].x()
+                                 + jy * geometry.points.position[bdy_point_index].y()
+                                 + jz * geometry.points.position[bdy_point_index].z();
+                min_x = std::min(min_x, ImX) * Fraction ;
+                max_x = std::max(max_x, ImX) * Fraction ;
+                min_y = std::min(min_y, ImY) * Fraction ;
+                max_y = std::max(max_y, ImY) * Fraction ;
+            }
+
+            image_direction_x = Vector3D(ix, iy, 0.0);
+            image_direction_y = Vector3D(jx, jy, jz);
+        } else {
+            for (Size bdy_idx = 0; bdy_idx < geometry.parameters->nboundary(); bdy_idx++) {
+                const Size bdy_point_index = geometry.boundary.boundary2point[bdy_idx];
+                const double ImX           = geometry.points.position[bdy_point_index].x();
+                const double ImY           = geometry.points.position[bdy_point_index].y();
+
+                min_x = std::min(min_x, ImX) * Fraction;
+                max_x = std::max(max_x, ImX) * Fraction;
+                min_y = std::min(min_y, ImY) * Fraction;
+                max_y = std::max(max_y, ImY) * Fraction;
+            }
+
+            image_direction_x = Vector3D(1.0, 0.0, 0.0);
+            image_direction_y = Vector3D(0.0, 1.0, 0.0);
+        }
+
+        image_direction_z = Vector3D(rx, ry, rz);
+    }
+
+    // Define pixels spanned by the plane: TODO: figure out why I thought I needed
+    // the closest bdy point
+    closest_bdy_point = geometry.get_closest_bdy_point_in_custom_raydir(ray_direction);
+    const Vector3D closest_bdy_position = geometry.points.position[closest_bdy_point];
+    double distance_from_origin =
+        closest_bdy_position.dot(ray_direction); // in a specific ray direction
+    // for 1D spherical symmetry, this is incorrect, as we represent the distance
+    // from the middle by the x-coordinate
+    if (geometry.parameters->spherical_symmetry()) {
+        distance_from_origin = -closest_bdy_position.x();
+    }
+
+    surface_center_point = ray_direction * distance_from_origin;
+    const double deltax =
+        (max_x - min_x) / (Nxpix); // putting the points a half ... away from the edge
+    const double deltay = (max_y - min_y) / (Nypix);
+
+    ImX.resize(Nxpix * Nypix);
+    ImY.resize(Nxpix * Nypix);
+    I.resize(Nxpix * Nypix, nfreqs);
+
+    threaded_for(x_idx, Nxpix, {
+        const double xloc = min_x + deltax / 2.0 + x_idx * deltax;
+        for (Size y_idx = 0; y_idx < Nypix; y_idx++) {
+            const Size totidx = y_idx + Nypix * x_idx;
+            const double yloc = min_y + deltay / 2.0 + y_idx * deltay;
+            ImX[totidx]       = xloc;
+            ImY[totidx]       = yloc;
+        }
+    });
+}
+
 
 // Helper function which converts surface coordinates to 3D coordinates using
 // the saved Warning: use only if ImagePointPosition==ProjectionSurface

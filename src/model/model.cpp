@@ -1034,6 +1034,38 @@ int Model ::compute_image_new(const Vector3D raydir, const Size Nxpix, const Siz
     return (0);
 }
 
+///  Computer for the radiation field, using a new imager TODO: check whether
+///  direction is correct (I suspect it is not)
+/////////////////////////////////////
+int Model ::compute_image_new_with_limit(const Vector3D raydir, const Size Nxpix, const Size Nypix, const double Fraction) {
+    if (raydir.squaredNorm() == 0.0) {
+        throw std::runtime_error(
+            "The given ray direction vector does not point in a direction. Please "
+            "use a non-zero (normed) direction vector to generate an image.");
+    }
+    const Vector3D normed_raydir = raydir * (1 / std::sqrt(raydir.squaredNorm()));
+    cout << "Computing image new..." << endl;
+
+    Solver solver;
+    // setup has to be handled after image creation, due to the rays themselves
+    // depend on the image pixels
+    //  solver.setup_new_imager <Rest> (*this);//traced ray length might be
+    //  different, thus we might need longer data types
+    if (parameters->one_line_approximation) {
+        throw std::runtime_error("One line approximation is not supported for imaging.");
+        solver.image_feautrier_order_2_new_imager_with_limit<OneLine>(*this, normed_raydir, Nxpix, Nypix, Fraction);
+        return (0);
+    }
+
+    if (parameters->sum_opacity_emissivity_over_all_lines) {
+        solver.image_feautrier_order_2_new_imager_with_limit<None>(*this, normed_raydir, Nxpix, Nypix, Fraction);
+        return (0);
+    }
+
+    solver.image_feautrier_order_2_new_imager_with_limit<CloseLines>(*this, normed_raydir, Nxpix, Nypix, Fraction);
+    return (0);
+}
+
 ///  Computer for image in one point
 ////////////////////////////////////
 int Model ::compute_image_for_point(const Size ray_nr, const Size p) {
@@ -1055,6 +1087,8 @@ int Model ::compute_image_for_point(const Size ray_nr, const Size p) {
     solver.image_feautrier_order_2_for_point<CloseLines>(*this, ray_nr, p);
     return (0);
 }
+
+
 
 ///  Computer for optical depth image
 //////////////////////////////////////

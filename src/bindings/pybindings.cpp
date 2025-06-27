@@ -238,6 +238,12 @@ PYBIND11_MODULE(core, module) {
                 & Model::compute_image_new,
             "Compute an image of the model along the given ray direction, using "
             "the new imager, specifying the ray direction and image resolution.")
+        .def("compute_image_new_with_limit",
+            (int(Model::*)(const double rx, const double ry, const double rz, const Size Nxpix,
+                const Size Nypix, const double Fraction))
+                & Model::compute_image_new_with_limit,
+            "Compute an image of the model along the given ray direction, using "
+            "the new imager, specifying the ray direction, image resolution and the fraction of the image to create.")
         .def("compute_image_optical_depth", &Model::compute_image_optical_depth,
             "Compute an image of the optical depth for the model along the "
             "given ray.")

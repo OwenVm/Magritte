@@ -171,6 +171,9 @@ struct Solver {
     template <ApproximationType approx>
     inline void image_feautrier_order_2_new_imager(
         Model& model, const Vector3D& ray_dir, const Size nxpix, const Size nypix);
+    template <ApproximationType approx>
+    inline void image_feautrier_order_2_new_imager_with_limit(
+        Model& model, const Vector3D& ray_dir, const Size nxpix, const Size nypix, const double fraction);
     // actual solver
     template <ApproximationType approx>
     accel inline void image_feautrier_order_2(Model& model, const Size o, const Size f);

@@ -627,6 +627,59 @@ inline void Solver ::image_feautrier_order_2_new_imager(
 }
 
 template <ApproximationType approx>
+inline void Solver ::image_feautrier_order_2_new_imager_with_limit(
+    Model& model, const Vector3D& ray_dir, const Size nxpix, const Size nypix, const double fraction) {
+    Image image =
+        Image(model.geometry, model.radiation.frequencies, Intensity, ray_dir, nxpix, nypix, fraction);
+    setup_new_imager(model, image, ray_dir);
+
+    // Note: number of pixels is constant for now, but may be
+    // adaptive in the future; (but then while loop will be
+    // required anyway)
+    const Size npixels             = image.ImX.size(); // is ImY.size(), is I.size()
+    const Vector3D origin_velocity = Vector3D(0.0);
+
+    const Size start_bdy_point = model.geometry.get_closest_bdy_point_in_custom_raydir(ray_dir);
+
+    accelerated_for(pixidx, npixels, {
+        const Vector3D origin =
+            image.surface_coords_to_3D_coordinates(image.ImX[pixidx], image.ImY[pixidx]);
+        Real Z = 0.0;
+        const Size closest_bdy_point =
+            trace_ray_imaging_get_start(model.geometry, origin, start_bdy_point, ray_dir, Z);
+
+        nr_()[centre]    = closest_bdy_point;
+        shift_()[centre] = model.geometry.get_shift<Rest>(
+            origin, origin_velocity, ray_dir, closest_bdy_point, Z, false);
+        first_() = trace_ray_imaging<Rest>(
+                       model, origin, closest_bdy_point, ray_dir, -1, Z, centre - 1, centre - 1)
+                 + 1;
+        last_() = centre; // by definition, only boundary points
+                          // can lie in the backward direction
+
+        n_tot_() = (last_() + 1) - first_();
+
+        if (n_tot_() > 1) {
+            for (Size f = 0; f < model.parameters->nfreqs(); f++) {
+                image_feautrier_order_2<approx>(model, closest_bdy_point, f);
+                image.I(pixidx, f) = two * Su_()[last_()]
+                                   - boundary_intensity(model, nr_()[last_()],
+                                       model.radiation.frequencies.nu(closest_bdy_point, f));
+            }
+        } else {
+            for (Size f = 0; f < model.parameters->nfreqs(); f++) {
+                image.I(pixidx, f) = boundary_intensity(
+                    model, closest_bdy_point, model.radiation.frequencies.nu(closest_bdy_point, f));
+            }
+        }
+    })
+
+    pc::accelerator::synchronize();
+
+    model.images.push_back(image);
+}
+
+template <ApproximationType approx>
 inline void Solver ::image_feautrier_order_2_for_point(Model& model, const Size rr, const Size p) {
     // Redefine p to keep everything as similar to
     // image_feautrier_order_2 as possible
