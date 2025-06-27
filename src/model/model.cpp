@@ -1034,6 +1034,14 @@ int Model ::compute_image_new(const Vector3D raydir, const Size Nxpix, const Siz
     return (0);
 }
 
+///  Wrapper for the new imager
+///////////////////////////////
+int Model ::compute_image_new_with_limit(
+    const double rx, const double ry, const double rz, const Size Nxpix, const Size Nypix, const double Fraction) {
+    const Vector3D raydir = Vector3D(rx, ry, rz); // will be normed later on (if not yet normed)
+    return compute_image_new_with_limit(raydir, Nxpix, Nypix, Fraction);
+}
+
 ///  Computer for the radiation field, using a new imager TODO: check whether
 ///  direction is correct (I suspect it is not)
 /////////////////////////////////////
@@ -1045,6 +1053,8 @@ int Model ::compute_image_new_with_limit(const Vector3D raydir, const Size Nxpix
     }
     const Vector3D normed_raydir = raydir * (1 / std::sqrt(raydir.squaredNorm()));
     cout << "Computing image new..." << endl;
+
+    std::cout << "Fraction: " << Fraction << std::endl;
 
     Solver solver;
     // setup has to be handled after image creation, due to the rays themselves

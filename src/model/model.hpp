@@ -79,6 +79,8 @@ struct Model {
     int compute_image_new(const Size ray_nr, const Size Nxpix, const Size Nypix);
     int compute_image_new(const Size ray_nr); // most similar function formulation
                                               // to old imager
+    int compute_image_new_with_limit(const double rx, const double ry, const double rz, const Size Nxpix, 
+        const Size Nypix, const double Fraction); 
     int compute_image_new_with_limit(const Vector3D raydir, const Size Nxpix, 
         const Size Nypix, const double Fraction); // function for the new imager with a limiter for channel maps
     int compute_image_optical_depth_new(const Vector3D raydir, const Size Nxpix,

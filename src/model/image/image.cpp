@@ -342,6 +342,7 @@ inline void Image ::set_coordinates_projection_surface(const Geometry& geometry,
             image_direction_y = Vector3D(0.0, 1.0, 0.0);
         }
 
+        std::cout << "Projection surface limits: " << min_x << " " << max_x << " "<< min_y << " " << max_y << std::endl;
         image_direction_z = Vector3D(rx, ry, rz);
     }
 
@@ -446,10 +447,10 @@ inline void Image ::set_coordinates_projection_surface_with_limit(const Geometry
                 const double ImY = jx * geometry.points.position[bdy_point_index].x()
                                  + jy * geometry.points.position[bdy_point_index].y()
                                  + jz * geometry.points.position[bdy_point_index].z();
-                min_x = std::min(min_x, ImX) * Fraction ;
-                max_x = std::max(max_x, ImX) * Fraction ;
-                min_y = std::min(min_y, ImY) * Fraction ;
-                max_y = std::max(max_y, ImY) * Fraction ;
+                min_x = std::min(min_x, ImX);
+                max_x = std::max(max_x, ImX);
+                min_y = std::min(min_y, ImY);
+                max_y = std::max(max_y, ImY);
             }
 
             image_direction_x = Vector3D(ix, iy, 0.0);
@@ -460,15 +461,20 @@ inline void Image ::set_coordinates_projection_surface_with_limit(const Geometry
                 const double ImX           = geometry.points.position[bdy_point_index].x();
                 const double ImY           = geometry.points.position[bdy_point_index].y();
 
-                min_x = std::min(min_x, ImX) * Fraction;
-                max_x = std::max(max_x, ImX) * Fraction;
-                min_y = std::min(min_y, ImY) * Fraction;
-                max_y = std::max(max_y, ImY) * Fraction;
+                min_x = std::min(min_x, ImX);
+                max_x = std::max(max_x, ImX);
+                min_y = std::min(min_y, ImY);
+                max_y = std::max(max_y, ImY);
             }
 
             image_direction_x = Vector3D(1.0, 0.0, 0.0);
             image_direction_y = Vector3D(0.0, 1.0, 0.0);
         }
+
+        min_x = min_x * Fraction;
+        max_x = max_x * Fraction;
+        min_y = min_y * Fraction;
+        max_y = max_y * Fraction;
 
         image_direction_z = Vector3D(rx, ry, rz);
     }
