@@ -132,4 +132,5 @@ struct Model {
     Matrix<Real> column;
 
     int set_column();
+    int set_column_points(const std::vector<Size>& points);
 };

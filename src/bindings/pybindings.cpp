@@ -282,6 +282,7 @@ PYBIND11_MODULE(core, module) {
         .def("compute_image_for_point", &Model::compute_image_for_point,
             "Compute image (single pixel) for a single point.")
         .def("set_column", &Model::set_column, "Set column (internally).")
+        .def("set_column_points", &Model::set_column_points, "Set column for given points (internally).")
         // constructor
         .def(py::init<const string>())
         .def(py::init<>());

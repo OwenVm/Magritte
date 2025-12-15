@@ -3177,6 +3177,21 @@ template <bool use_adaptive_directions> inline void Solver ::set_column(Model& m
     }
 }
 
+template <bool use_adaptive_directions> inline void Solver::set_column_points(Model& model, const std::vector<Size>& points) const {
+    model.column.resize(model.parameters->nrays(), model.parameters->npoints());
+
+    for (Size rr = 0; rr < model.parameters->hnrays(); rr++) {
+        cout << "--- rr = " << rr << endl;
+
+        accelerated_for(idx, points.size(), {
+            const Size o = points[idx];
+            const Size ar = model.geometry.rays.get_antipod_index(rr);
+            model.column(rr, o) = get_column<use_adaptive_directions>(model, o, rr);
+            model.column(ar, o) = get_column<use_adaptive_directions>(model, o, ar);
+        })
+    }
+}
+
 template <bool use_adaptive_directions>
 accel inline Real Solver ::get_column(const Model& model, const Size o, const Size r) const {
     Real column = 0.0;

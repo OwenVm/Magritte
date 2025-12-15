@@ -1249,6 +1249,19 @@ int Model ::set_column() {
     return (0);
 }
 
+int Model::set_column_points(const std::vector<Size>& points) {
+    Solver solver;
+    const bool use_adaptive_directions = geometry.rays.use_adaptive_directions;
+    if (use_adaptive_directions) {
+        cout << "Using adaptive directions" << endl;
+        solver.set_column_points<true>(*this, points);
+    } else {
+        solver.set_column_points<false>(*this, points);
+    }
+
+    return (0);
+}
+
 ///  Setter for the maximum allowed shift value determined by the smallest line
 ///////////////////////////////////////////////////////////////////////////////
 int Model ::set_dshift_max() {

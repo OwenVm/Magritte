@@ -230,6 +230,7 @@ struct Solver {
     // Solvers for column densities
     ///////////////////////////////
     template <bool use_adaptive_directions> accel inline void set_column(Model& model) const;
+    template <bool use_adaptive_directions> accel inline void set_column_points(Model& model, const std::vector<Size>& points) const;
     template <bool use_adaptive_directions>
     accel inline Real get_column(const Model& model, const Size o, const Size r) const;
 };
